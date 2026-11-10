@@ -64,7 +64,7 @@ class AMessageView :
 		/*!
 		 * \brief Перемещение курсора над линком (см. Qt::QWebView)
 		 */
-		void link_hover (const QString& link, const QString& title, const QString& textContent);
+        void link_hover (const QString& link);
 };
 
 #endif   // _avalon_message_view_h_

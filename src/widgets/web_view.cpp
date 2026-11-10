@@ -2,61 +2,66 @@
 //----------------------------------------------------------------------------------------------
 #include "global.h"
 #include "webservice.h"
+#include <QWebEngineSettings>
 //----------------------------------------------------------------------------------------------
 
-AWebView::AWebView (QWidget* parent) : QWebView (parent)
+AWebView::AWebView (QWidget* parent) : QWebEngineView (parent)
 {
 	LinkHovered = false;
 
 	setPage(new AWebPage(this));
 
-	page()->setLinkDelegationPolicy(QWebPage::DelegateAllLinks);
+    pageAction(QWebEnginePage::DownloadLinkToDisk)->setVisible(false);
+    pageAction(QWebEnginePage::DownloadImageToDisk)->setVisible(false);
+    pageAction(QWebEnginePage::CopyImageToClipboard)->setVisible(false);
+    pageAction(QWebEnginePage::Reload)->setVisible(false);
 
-	pageAction(QWebPage::OpenLink)->setVisible(false);
-	pageAction(QWebPage::OpenLinkInNewWindow)->setVisible(false);
-	pageAction(QWebPage::OpenFrameInNewWindow)->setVisible(false);
-	pageAction(QWebPage::DownloadLinkToDisk)->setVisible(false);
-	pageAction(QWebPage::OpenImageInNewWindow)->setVisible(false);
-	pageAction(QWebPage::DownloadImageToDisk)->setVisible(false);
-	pageAction(QWebPage::CopyImageToClipboard)->setVisible(false);
-	pageAction(QWebPage::Reload)->setVisible(false);
+    pageAction(QWebEnginePage::CopyLinkToClipboard)->setText(QString::fromUtf8("Копировать ссылку"));
+    pageAction(QWebEnginePage::CopyLinkToClipboard)->setIcon(QIcon(":/icons/copy16.png"));
 
-	pageAction(QWebPage::CopyLinkToClipboard)->setText(QString::fromUtf8("Копировать ссылку"));
-	pageAction(QWebPage::CopyLinkToClipboard)->setIcon(QIcon(":/icons/copy16.png"));
-
-	pageAction(QWebPage::Copy)->setText(QString::fromUtf8("Копировать"));
-	pageAction(QWebPage::Copy)->setIcon(QIcon(":/icons/copy16.png"));
-	pageAction(QWebPage::Copy)->setShortcuts(QKeySequence::Copy);
+    pageAction(QWebEnginePage::Copy)->setText(QString::fromUtf8("Копировать"));
+    pageAction(QWebEnginePage::Copy)->setIcon(QIcon(":/icons/copy16.png"));
+    pageAction(QWebEnginePage::Copy)->setShortcuts(QKeySequence::Copy);
 
 	settings()->setDefaultTextEncoding("utf-8");
 
-	settings()->setAttribute(QWebSettings::JavascriptCanOpenWindows, false);
-	settings()->setAttribute(QWebSettings::JavascriptCanAccessClipboard, false);
+    settings()->setAttribute(QWebEngineSettings::JavascriptCanOpenWindows, false);
+    settings()->setAttribute(QWebEngineSettings::JavascriptCanAccessClipboard, false);
 
 	// полезно для отладки генерируемого HTML
-	settings()->setAttribute(QWebSettings::DeveloperExtrasEnabled, true);
+//    settings()->setAttribute(QWebEngineSettings::DeveloperExtrasEnabled, true);
 };
 //----------------------------------------------------------------------------------------------
 
 void AWebView::keyPressEvent (QKeyEvent* event)
 {
 	if (event->matches(QKeySequence::Copy) == true)
-		pageAction(QWebPage::Copy)->trigger();
+        pageAction(QWebEnginePage::Copy)->trigger();
 	else
-		QWebView::keyPressEvent(event);
+        QWebEngineView::keyPressEvent(event);
 }
 //----------------------------------------------------------------------------------------------
 
-bool AWebView::canScrollPage ()
+void AWebView::scrollPage(std::function<void()> callback)
 {
-	return (page()->mainFrame()->scrollBarValue(Qt::Vertical) != page()->mainFrame()->scrollBarMaximum(Qt::Vertical));
-}
-//----------------------------------------------------------------------------------------------
+    // Check if we can scroll down further, and if so, scroll down by a page height (or simulate Space)
+    QString script =
+        "(function() {"
+        "    var canScroll = window.pageYOffset < (document.documentElement.scrollHeight - window.innerHeight);"
+        "    if (canScroll) {"
+        "        window.scrollBy({ top: window.innerHeight * 0.8, behavior: 'smooth' });"
+        "        return true;"
+        "    }"
+        "    return false;"
+        "})();";
 
-void AWebView::scrollPage ()
-{
-	QKeyEvent event(QEvent::KeyPress, Qt::Key_Space, Qt::NoModifier);
-	keyPressEvent(&event);
+    page()->runJavaScript(script, [callback](const QVariant &result) {
+        bool didScroll = result.toBool();
+        if (!didScroll) {
+            // Reached the bottom, invoke the callback
+            callback();
+        }
+    });
 }
 //----------------------------------------------------------------------------------------------
 
@@ -65,7 +70,7 @@ void AWebView::contextMenuEvent (QContextMenuEvent* event)
 	QString selected = page()->selectedText();
 
 	if (selected.length() == 0 || LinkHovered == true)
-		QWebView::contextMenuEvent(event);
+        QWebEngineView::contextMenuEvent(event);
 	else
 	{
 		// Странно, но если делать m_menu переменной класса и задать все нужные свойства в конструкторе,
@@ -73,7 +78,7 @@ void AWebView::contextMenuEvent (QContextMenuEvent* event)
 
 		QMenu* m_menu = new QMenu(this);
 
-		m_menu->addAction(pageAction(QWebPage::Copy));
+        m_menu->addAction(pageAction(QWebEnginePage::Copy));
 
 		m_menu->addSeparator();
 

@@ -97,9 +97,6 @@ AFormMain::AFormMain () : AFormMainUI (), IFormMain ()
 	// т.к. из перезагрузки выполняется управление включением/выключением возможных действий (см. IFormMain::setEnabledAction)
 	m_forum_tree->reload();
 
-	// установка прокси для отображения сообщений
-	m_message_view->View->page()->networkAccessManager()->setProxy(AWebservice::defaultProxy(true));
-
 	// таймер периодической синхронизации
 	connect(&m_timer, SIGNAL(timeout()), this, SLOT(timer_on_timer()));
 
@@ -551,9 +548,6 @@ void AFormMain::menu_service_settings_triggered ()
 		// перезагрузка дерева форумов
 		m_forum_tree->reload();
 
-		// переустановка прокси для отображения сообщений
-		m_message_view->View->page()->networkAccessManager()->setProxy(AWebservice::defaultProxy(true));
-
 		// таймер синхронизации
 		QSettings settings;
 
@@ -642,15 +636,15 @@ void AFormMain::menu_goto_next_unread_forum_triggered ()
 
 void AFormMain::menu_goto_next_smart()
 {
-	if (m_message_view->View->canScrollPage() == true)
-		m_message_view->View->scrollPage();
-	else if (m_menu_goto_next_unread_article->isEnabled() == true)
-		m_message_tree->gotoNextUnreadArticle();
-	else if (m_menu_goto_next_unread_forum->isEnabled() == true)
-	{
-		m_forum_tree->gotoNextUnreadForum();
-		m_message_tree->gotoNextUnreadArticle();
-	}
+    m_message_view->View->scrollPage([&]() {
+        if (m_menu_goto_next_unread_article->isEnabled() == true)
+            m_message_tree->gotoNextUnreadArticle();
+        else if (m_menu_goto_next_unread_forum->isEnabled() == true)
+        {
+            m_forum_tree->gotoNextUnreadForum();
+            m_message_tree->gotoNextUnreadArticle();
+        }
+    });
 }
 //----------------------------------------------------------------------------------------------
 

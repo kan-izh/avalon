@@ -20,12 +20,11 @@
 #include <QRegExp>
 #include <QSysInfo>
 #include <QtGlobal>
-#include <QWebView>
+#include <QWebEngineView>
 #include <QMenuBar>
 #include <QToolBar>
 #include <QPainter>
 #include <QProcess>
-#include <QWebFrame>
 #include <QLineEdit>
 #include <QSplitter>
 #include <QSettings>

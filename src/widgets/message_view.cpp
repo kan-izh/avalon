@@ -10,9 +10,11 @@ AMessageView::AMessageView (QWidget* parent) : AWebViewWidget (parent), IMessage
 	m_main_form    = 0;
 	m_forum_tree   = 0;
 	m_message_tree = 0;
-
-	connect(View->page(), SIGNAL(linkClicked(const QUrl&)), this, SLOT(link_clicked(const QUrl&)));
-	connect(View->page(), SIGNAL(linkHovered(const QString&, const QString&, const QString&)), this, SLOT(link_hover(const QString&, const QString&, const QString&)));
+    AWebPage *page = qobject_cast<AWebPage*>(View->page());
+    if(page) {
+        connect(page, &AWebPage::linkClicked, this, &AMessageView::link_clicked);
+    }
+    connect(page, &AWebPage::linkHovered, this, &AMessageView::link_hover);
 }
 //----------------------------------------------------------------------------------------------
 
@@ -78,25 +80,24 @@ void AMessageView::clear ()
 
 void AMessageView::link_clicked (const QUrl& url)
 {
-	QString special = url.toString();
+    QString special = url.toString();
 
-	if (m_message_tree != NULL)
-		m_message_tree->processUrl(special);
-	else
-		QDesktopServices::openUrl(url);
+    if (m_message_tree != NULL)
+        m_message_tree->processUrl(special);
+    else
+        QDesktopServices::openUrl(url);
 }
-//----------------------------------------------------------------------------------------------
 
-void AMessageView::link_hover (const QString& link, const QString& /*title*/, const QString& /*textContent*/)
+void AMessageView::link_hover (const QString& link)
 {
-	bool avalon_link = link.indexOf("avalon:") == 0;
+       bool avalon_link = link.indexOf("avalon:") == 0;
 
-	if (link.length() != 0 && avalon_link == false)
-		View->LinkHovered = true;
-	else
-		View->LinkHovered = false;
+       if (link.length() != 0 && avalon_link == false)
+               View->LinkHovered = true;
+       else
+               View->LinkHovered = false;
 
-	if (avalon_link == false)
-		m_main_form->showStatus(link);
+       if (avalon_link == false)
+               m_main_form->showStatus(link);
 }
 //----------------------------------------------------------------------------------------------

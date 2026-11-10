@@ -7,25 +7,39 @@
 #define _avalon_web_view_h_
 
 #include "sysheaders.h"
+#include <functional>
 
 /*!
  * \brief Cабклассинг QWebPage для установки User-Agent ресурсов, загружаемых из сообщений
  */
-class AWebPage : public QWebPage
+class AWebPage : public QWebEnginePage
 {
-	public:
+    Q_OBJECT
 
-		AWebPage(QObject* parent = NULL) : QWebPage(parent) {}
+    public:
+
+        AWebPage(QObject* parent = NULL) : QWebEnginePage(parent) {}
 
 	protected:
 
 		QString userAgentForUrl (const QUrl& /*url*/) const { return getAgentString(); }
+
+        bool acceptNavigationRequest(const QUrl &url, QWebEnginePage::NavigationType type, bool isMainFrame) override {
+            if (type == NavigationTypeLinkClicked) {
+                emit linkClicked(url);
+                return false; // Prevent default browser navigation
+            }
+            return QWebEnginePage::acceptNavigationRequest(url, type, isMainFrame);
+        }
+
+    signals:
+        void linkClicked(const QUrl &url);
 };
 
 /*!
  * \brief Cабклассинг QWebView для установки дефолтного поведения
  */
-class AWebView : public QWebView
+class AWebView : public QWebEngineView
 {
 	Q_OBJECT
 
@@ -42,15 +56,9 @@ class AWebView : public QWebView
 		bool LinkHovered;
 
 		/*!
-		 * \brief Проверка возможности прокрутки страницы сообщения
-		 * \return Флаг возможности скрола сообщения
-		 */
-		bool canScrollPage ();
-
-		/*!
 		 * \brief Прокрутка страницы сообщения
 		 */
-		void scrollPage ();
+        void scrollPage (std::function<void()> callback);
 
 	protected:
 

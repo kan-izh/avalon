@@ -14,7 +14,7 @@
  */
 int main (int argc, char* argv[])
 {
-	// инициализация ресурсов (необязательный пункт)
+    // инициализация ресурсов (необязательный пункт)
 	Q_INIT_RESOURCE(resource);
 
 	QApplication app(argc, argv);
