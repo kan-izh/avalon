@@ -56,7 +56,7 @@ void FormSourceUI::restore ()
 {
 	QSettings settings;
 
-	QRect screen = QDesktopWidget().screenGeometry(this);
+    QRect screen = window()->screen()->geometry();
 
 	int w = settings.value("form_source/width",  width()).toInt();
 	int h = settings.value("form_source/height", height()).toInt();

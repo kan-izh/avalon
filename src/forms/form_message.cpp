@@ -104,11 +104,10 @@ FormMessage::FormMessage (QWidget* parent, bool is_reply, const AMessageInfoGUI&
 		m_info.Message.replace("&amp;", "&");
 	}
 
-	// удаление таглайнов
-	QRegExp tagline("\\[tagline\\](.+)\\[/tagline\\]");
-	tagline.setMinimal(true);
-	m_info.Message.replace(tagline, "");
-	//m_info.Message = m_info.Message.trimmed();
+    // удаление таглайнов
+    QRegularExpression tagline("\\[tagline\\](.+?)\\[/tagline\\]");
+    m_info.Message.replace(tagline, "");
+    //m_info.Message = m_info.Message.trimmed();
 
 	// установка остальных полей
 	m_text_subject->setText(m_info.Subject);
@@ -225,7 +224,7 @@ void FormMessage::sendMessage (bool draft)
 	info.Draft    = draft;
 
 	if (m_edit_id == 0)
-		info.ID = info.Date.toTime_t(); // это локальный ID
+        info.ID = info.Date.toSecsSinceEpoch(); // это локальный ID
 	else
 		info.ID = m_edit_id; // редактируемый ID
 

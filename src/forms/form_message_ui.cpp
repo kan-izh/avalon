@@ -400,7 +400,7 @@ void FormMessageUI::restore ()
 {
 	QSettings settings;
 
-	QRect screen = QDesktopWidget().screenGeometry(this);
+    QRect screen = window()->screen()->geometry();
 
 	int w = settings.value("form_message/width",  width()).toInt();
 	int h = settings.value("form_message/height", height()).toInt();

@@ -58,7 +58,7 @@ bool ASQLiteStorage::createDatabase ()
 
 	file.close();
 
-	QStringList statements = schema.split(';', QString::SkipEmptyParts);
+    QStringList statements = schema.split(';', Qt::SkipEmptyParts);
 
 	for (int i = 0; i < statements.count(); i++)
 	{
@@ -1216,7 +1216,7 @@ bool ASQLiteStorage::setMessageList (const ADataList& list, const ARowVersion& r
 		{
 			QByteArray message = info.Message.toUtf8();
 
-			uLongf       source_buf_size = message.count();
+            uLongf       source_buf_size = message.size();
 			const Bytef* source_buf      = (const Bytef*)message.constData();
 
 			// проверка на достаточную размерность буфера сжатия
@@ -1276,12 +1276,12 @@ bool ASQLiteStorage::setMessageList (const ADataList& list, const ARowVersion& r
 		#endif
 
 		query_insert_message->bindValue(":id_article",       info.IDArticle);
-		query_insert_message->bindValue(":message_date",     info.MessageDate.toTime_t());
-		query_insert_message->bindValue(":update_date",      info.UpdateDate.toTime_t());
+        query_insert_message->bindValue(":message_date",     info.MessageDate.toSecsSinceEpoch());
+        query_insert_message->bindValue(":update_date",      info.UpdateDate.toSecsSinceEpoch());
 		query_insert_message->bindValue(":user_role",        info.UserRole);
 		query_insert_message->bindValue(":user_title",       info.UserTitle);
 		query_insert_message->bindValue(":user_title_color", info.UserTitleColor);
-		query_insert_message->bindValue(":last_moderated",   info.LastModerated.toTime_t());
+        query_insert_message->bindValue(":last_moderated",   info.LastModerated.toSecsSinceEpoch());
 		query_insert_message->bindValue(":closed",           (info.Closed == true ? 1 : 0));
 
 		#ifdef AVALON_USE_ZLIB
@@ -1307,7 +1307,7 @@ bool ASQLiteStorage::setMessageList (const ADataList& list, const ARowVersion& r
 		{
 			query_insert_message_topic->bindValue(":id_message",     info.ID);
 			query_insert_message_topic->bindValue(":id_forum",       info.IDForum);
-			query_insert_message_topic->bindValue(":message_date",   info.MessageDate.toTime_t());
+            query_insert_message_topic->bindValue(":message_date",   info.MessageDate.toSecsSinceEpoch());
 
 			if (query_insert_message_topic->exec() == false)
 			{
@@ -1330,7 +1330,7 @@ bool ASQLiteStorage::setMessageList (const ADataList& list, const ARowVersion& r
 			query_insert_unread->bindValue(":id_parent",      info.IDParent);
 			query_insert_unread->bindValue(":id_forum",       info.IDForum);
 			query_insert_unread->bindValue(":id_topic",       info.IDTopic);
-			query_insert_unread->bindValue(":message_date",   info.MessageDate.toTime_t());
+            query_insert_unread->bindValue(":message_date",   info.MessageDate.toSecsSinceEpoch());
 
 			if (query_insert_unread->exec() == false)
 			{
@@ -1548,7 +1548,7 @@ bool ASQLiteStorage::setMessageList (const ADataList& list, const ARowVersion& r
 		query_insert_rating->bindValue(":id_user",       info.IDUser);
 		query_insert_rating->bindValue(":user_rating",   info.UserRating);
 		query_insert_rating->bindValue(":rate",          info.Rate);
-		query_insert_rating->bindValue(":rate_date",     info.RateDate.toTime_t());
+        query_insert_rating->bindValue(":rate_date",     info.RateDate.toSecsSinceEpoch());
 
 		// "+1" = -3, "1" = 1, "2" = 2, "3" = 3, "+" = -4, "-" = 0, ";)" = -2
 		if (info.Rate == -2)
@@ -1607,7 +1607,7 @@ bool ASQLiteStorage::setMessageList (const ADataList& list, const ARowVersion& r
 		query_insert_moderate->bindValue(":id_topic",   info.IDTopic);
 		query_insert_moderate->bindValue(":id_user",    info.IDUser);
 		query_insert_moderate->bindValue(":id_forum",   info.IDForum);
-		query_insert_moderate->bindValue(":created",    info.Created.toTime_t());
+        query_insert_moderate->bindValue(":created",    info.Created.toSecsSinceEpoch());
 
 		if (query_insert_moderate->exec() == false)
 		{
@@ -2260,7 +2260,7 @@ bool ASQLiteStorage::getTopicInfoList (int id_forum, AMessageInfoGUIPtrList& lis
 
 				info->Subject     = query_select->value(3).toString();
 				info->UserNick    = query_select->value(4).toString();
-				info->MessageDate = QDateTime::fromTime_t(query_select->value(5).toUInt());
+                info->MessageDate = QDateTime::fromSecsSinceEpoch(query_select->value(5).toUInt());
 
 				if (id_forum >= 0)
 					info->HasChild = query_select->value(6).toInt();
@@ -2508,7 +2508,7 @@ bool ASQLiteStorage::getTopicMessageList (int id_forum, int id_topic, AMessageIn
 
 		info->Subject     = query_select->value(4).toString();
 		info->UserNick    = query_select->value(5).toString();
-		info->MessageDate = QDateTime::fromTime_t(query_select->value(6).toUInt());
+        info->MessageDate = QDateTime::fromSecsSinceEpoch(query_select->value(6).toUInt());
 		info->HasChild    = query_select->value(7).toInt();
 
 		list.append(info);
@@ -2598,7 +2598,7 @@ bool ASQLiteStorage::getMessageBody (int id_message, QString& body)
 
 			QByteArray message = query_select->value(0).toByteArray();
 
-			uLongf       compressed_buf_size = message.count();
+            uLongf       compressed_buf_size = message.size();
 			const Bytef* compressed_buf      = (const Bytef*)message.constData();
 
 			// по тестам сжатие составляет в среднем ~50%
@@ -2684,7 +2684,7 @@ bool ASQLiteStorage::setIDsAsRead (const QList<int>& list, AIDSet type, bool rea
 				sql += "	`id_message` IN (" + ids + ")";
 
 				if (date.isValid() == true)
-					sql += " AND\n	`message_date` <= " + QString::number(date.toTime_t());
+                    sql += " AND\n	`message_date` <= " + QString::number(date.toSecsSinceEpoch());
 
 				break;
 
@@ -2701,7 +2701,7 @@ bool ASQLiteStorage::setIDsAsRead (const QList<int>& list, AIDSet type, bool rea
 				sql += "	)";
 
 				if (date.isValid() == true)
-					sql += " AND\n	`message_date` <= " + QString::number(date.toTime_t());
+                    sql += " AND\n	`message_date` <= " + QString::number(date.toSecsSinceEpoch());
 
 				break;
 
@@ -2755,7 +2755,7 @@ bool ASQLiteStorage::setIDsAsRead (const QList<int>& list, AIDSet type, bool rea
 				}
 
 				if (date.isValid() == true)
-					sql += " AND\n	`message_date` <= " + QString::number(date.toTime_t());
+                    sql += " AND\n	`message_date` <= " + QString::number(date.toSecsSinceEpoch());
 
 				break;
 
@@ -2775,7 +2775,7 @@ bool ASQLiteStorage::setIDsAsRead (const QList<int>& list, AIDSet type, bool rea
 				sql += "	)";
 
 				if (date.isValid() == true)
-					sql += " AND\n	`message_date` <= " + QString::number(date.toTime_t());
+                    sql += " AND\n	`message_date` <= " + QString::number(date.toSecsSinceEpoch());
 
 				break;
 
@@ -2784,7 +2784,7 @@ bool ASQLiteStorage::setIDsAsRead (const QList<int>& list, AIDSet type, bool rea
 				sql += "DELETE FROM `unread`";
 
 				if (date.isValid() == true)
-					sql += "WHERE `message_date` <= " + QString::number(date.toTime_t());
+                    sql += "WHERE `message_date` <= " + QString::number(date.toSecsSinceEpoch());
 
 				break;
 
@@ -2820,7 +2820,7 @@ bool ASQLiteStorage::setIDsAsRead (const QList<int>& list, AIDSet type, bool rea
 				sql += "	`id` IN (" + ids + ")";
 
 				if (date.isValid() == true)
-					sql += " AND\n	`message_date` >= " + QString::number(date.toTime_t());
+                    sql += " AND\n	`message_date` >= " + QString::number(date.toSecsSinceEpoch());
 
 				break;
 
@@ -2863,7 +2863,7 @@ bool ASQLiteStorage::setIDsAsRead (const QList<int>& list, AIDSet type, bool rea
 				sql += "	`id` IN (" + ids + ")";
 
 				if (date.isValid() == true)
-					sql += " AND\n	`message_date` >= " + QString::number(date.toTime_t());
+                    sql += " AND\n	`message_date` >= " + QString::number(date.toSecsSinceEpoch());
 
 				sql_2 += "REPLACE INTO `unread`\n";
 				sql_2 += "(\n";
@@ -2887,7 +2887,7 @@ bool ASQLiteStorage::setIDsAsRead (const QList<int>& list, AIDSet type, bool rea
 				sql_2 += "	`id_topic` IN (" + ids + ")";
 
 				if (date.isValid() == true)
-					sql_2 += " AND\n	`message_date` >= " + QString::number(date.toTime_t());
+                    sql_2 += " AND\n	`message_date` >= " + QString::number(date.toSecsSinceEpoch());
 
 				break;
 
@@ -2984,7 +2984,7 @@ bool ASQLiteStorage::setIDsAsRead (const QList<int>& list, AIDSet type, bool rea
 				}
 
 				if (date.isValid() == true)
-					sql += " AND\n	`message_date` >= " + QString::number(date.toTime_t());
+                    sql += " AND\n	`message_date` >= " + QString::number(date.toSecsSinceEpoch());
 
 				break;
 
@@ -3020,7 +3020,7 @@ bool ASQLiteStorage::setIDsAsRead (const QList<int>& list, AIDSet type, bool rea
 				sql += "	)";
 
 				if (date.isValid() == true)
-					sql += " AND\n	`message_date` >= " + QString::number(date.toTime_t());
+                    sql += " AND\n	`message_date` >= " + QString::number(date.toSecsSinceEpoch());
 
 				break;
 
@@ -3046,7 +3046,7 @@ bool ASQLiteStorage::setIDsAsRead (const QList<int>& list, AIDSet type, bool rea
 				sql += "	`message`";
 
 				if (date.isValid() == true)
-					sql += "\nWHERE\n	`message_date` >= " + QString::number(date.toTime_t());
+                    sql += "\nWHERE\n	`message_date` >= " + QString::number(date.toSecsSinceEpoch());
 
 				break;
 
@@ -3480,7 +3480,7 @@ bool ASQLiteStorage::addMessage2Send (const AMessage2Send& info)
 	query->bindValue(":id_forum",  info.IDForum);
 	query->bindValue(":subject",   info.Subject);
 	query->bindValue(":message",   info.Message);
-	query->bindValue(":date",      info.Date.toTime_t());
+    query->bindValue(":date",      info.Date.toSecsSinceEpoch());
 	query->bindValue(":draft",     (info.Draft == true ? 1 : 0)); // иначе конвертится в текстовую строку "true" / "false"
 
 	if (query->exec() == false)
@@ -3532,7 +3532,7 @@ bool ASQLiteStorage::getMessage2SendList (AMessageInfoList& list, bool drafts)
 		info.UserNick       = "";
 		info.Message        = query_select->value(4).toString();
 		info.IDArticle      = 0;
-		info.MessageDate    = QDateTime::fromTime_t(query_select->value(5).toUInt());
+        info.MessageDate    = QDateTime::fromSecsSinceEpoch(query_select->value(5).toUInt());
 		info.UpdateDate     = QDateTime();
 		info.UserRole       = "";
 		info.UserTitle      = "";
@@ -3579,7 +3579,7 @@ bool ASQLiteStorage::addRating2Send (const ARating2Send& info)
 	query->bindValue(":id",         info.ID);
 	query->bindValue(":id_message", info.IDMessage);
 	query->bindValue(":rate",       info.Rate);
-	query->bindValue(":date",       info.Date.toTime_t());
+    query->bindValue(":date",       info.Date.toSecsSinceEpoch());
 
 	if (query->exec() == false)
 		return returnError(query->getLastError());
@@ -3648,12 +3648,12 @@ bool ASQLiteStorage::getRating2SendList (AMessageInfoList& message_list, ARating
 			return false;
 
 		message_info.IDArticle      = query_select->value(8).toInt();
-		message_info.MessageDate    = QDateTime::fromTime_t(query_select->value(9).toUInt());
-		message_info.UpdateDate     = QDateTime::fromTime_t(query_select->value(10).toUInt());
+        message_info.MessageDate    = QDateTime::fromSecsSinceEpoch(query_select->value(9).toUInt());
+        message_info.UpdateDate     = QDateTime::fromSecsSinceEpoch(query_select->value(10).toUInt());
 		message_info.UserRole       = query_select->value(11).toString();
 		message_info.UserTitle      = query_select->value(12).toString();
 		message_info.UserTitleColor = query_select->value(13).toInt();
-		message_info.LastModerated  = QDateTime::fromTime_t(query_select->value(14).toUInt());
+        message_info.LastModerated  = QDateTime::fromSecsSinceEpoch(query_select->value(14).toUInt());
 		message_info.Closed         = query_select->value(15).toInt();
 
 		message_list.append(message_info);
@@ -3663,7 +3663,7 @@ bool ASQLiteStorage::getRating2SendList (AMessageInfoList& message_list, ARating
 		rating_info.ID        = query_select->value(16).toInt();
 		rating_info.IDMessage = message_info.ID;
 		rating_info.Rate      = query_select->value(17).toInt();
-		rating_info.Date      = QDateTime::fromTime_t(query_select->value(18).toUInt());
+        rating_info.Date      = QDateTime::fromSecsSinceEpoch(query_select->value(18).toUInt());
 
 		rating_list.append(rating_info);
 	}
@@ -3703,7 +3703,7 @@ bool ASQLiteStorage::getRating2SendList (ARating2SendList& list)
 		rating_info.ID        = query_select->value(0).toInt();
 		rating_info.IDMessage = query_select->value(1).toInt();
 		rating_info.Rate      = query_select->value(2).toInt();
-		rating_info.Date      = QDateTime::fromTime_t(query_select->value(3).toUInt());
+        rating_info.Date      = QDateTime::fromSecsSinceEpoch(query_select->value(3).toUInt());
 
 		list.append(rating_info);
 	}
@@ -3720,7 +3720,7 @@ bool ASQLiteStorage::changeRating (int id, int new_rate)
 	sql += "	`rating2send`\n";
 	sql += "SET\n";
 	sql += "	`rate` = " + QString::number(new_rate) + ",\n";
-	sql += "	`date` = " + QString::number(QDateTime::currentDateTime().toTime_t()) + "\n";
+    sql += "	`date` = " + QString::number(QDateTime::currentDateTime().toSecsSinceEpoch()) + "\n";
 	sql += "WHERE\n";
 	sql += "	`id` = " + QString::number(id);
 
@@ -3772,7 +3772,7 @@ bool ASQLiteStorage::addModerate2Send (const AModerate2Send& info)
 	query->bindValue(":id_forum",     info.IDForum);
 	query->bindValue(":description",  info.Description);
 	query->bindValue(":as_moderator", info.AsModerator);
-	query->bindValue(":date",         info.Date.toTime_t());
+    query->bindValue(":date",         info.Date.toSecsSinceEpoch());
 
 	if (query->exec() == false)
 		return returnError(query->getLastError());
@@ -3844,12 +3844,12 @@ bool ASQLiteStorage::getModerate2SendList (AMessageInfoList& message_list, AMode
 			return false;
 
 		message_info.IDArticle      = query_select->value(8).toInt();
-		message_info.MessageDate    = QDateTime::fromTime_t(query_select->value(9).toUInt());
-		message_info.UpdateDate     = QDateTime::fromTime_t(query_select->value(10).toUInt());
+        message_info.MessageDate    = QDateTime::fromSecsSinceEpoch(query_select->value(9).toUInt());
+        message_info.UpdateDate     = QDateTime::fromSecsSinceEpoch(query_select->value(10).toUInt());
 		message_info.UserRole       = query_select->value(11).toString();
 		message_info.UserTitle      = query_select->value(12).toString();
 		message_info.UserTitleColor = query_select->value(13).toInt();
-		message_info.LastModerated  = QDateTime::fromTime_t(query_select->value(14).toUInt());
+        message_info.LastModerated  = QDateTime::fromSecsSinceEpoch(query_select->value(14).toUInt());
 		message_info.Closed         = query_select->value(15).toInt();
 
 		message_list.append(message_info);
@@ -3862,7 +3862,7 @@ bool ASQLiteStorage::getModerate2SendList (AMessageInfoList& message_list, AMode
 		moderate_info.IDForum     = query_select->value(18).toInt();
 		moderate_info.Description = query_select->value(19).toString();
 		moderate_info.AsModerator = query_select->value(20).toInt();
-		moderate_info.Date        = QDateTime::fromTime_t(query_select->value(21).toUInt());
+        moderate_info.Date        = QDateTime::fromSecsSinceEpoch(query_select->value(21).toUInt());
 
 		moderate_list.append(moderate_info);
 	}
@@ -3908,7 +3908,7 @@ bool ASQLiteStorage::getModerate2SendList (AModerate2SendList& list)
 		moderate_info.IDForum     = query_select->value(3).toInt();
 		moderate_info.Description = query_select->value(4).toString();
 		moderate_info.AsModerator = query_select->value(5).toInt();
-		moderate_info.Date        = QDateTime::fromTime_t(query_select->value(6).toUInt());
+        moderate_info.Date        = QDateTime::fromSecsSinceEpoch(query_select->value(6).toUInt());
 
 		list.append(moderate_info);
 	}
@@ -3952,7 +3952,7 @@ bool ASQLiteStorage::getModerate2SendInfo (int id, AModerate2Send& info)
 		info.IDForum     = query_select->value(3).toInt();
 		info.Description = query_select->value(4).toString();
 		info.AsModerator = query_select->value(5).toInt();
-		info.Date        = QDateTime::fromTime_t(query_select->value(6).toUInt());
+        info.Date        = QDateTime::fromSecsSinceEpoch(query_select->value(6).toUInt());
 	}
 
 	if (info.ID == -1)
@@ -4257,7 +4257,7 @@ bool ASQLiteStorage::compressStorage (IProgress* progress)
 			int        id      = query_select->value(0).toInt();
 			QByteArray message = query_select->value(1).toString().toUtf8();
 
-			uLongf       source_buf_size = message.count();
+            uLongf       source_buf_size = message.size();
 			const Bytef* source_buf      = (const Bytef*)message.constData();
 
 			// проверка на достаточную размерность буфера сжатия
@@ -4452,7 +4452,7 @@ bool ASQLiteStorage::uncompressStorage (IProgress* progress)
 			int        id      = query_select->value(0).toInt();
 			QByteArray message = query_select->value(1).toByteArray();
 
-			uLongf       compressed_buf_size = message.count();
+            uLongf       compressed_buf_size = message.size();
 			const Bytef* compressed_buf      = (const Bytef*)message.constData();
 
 			uncompressed_buf_size_real = uncompressed_buf_size;

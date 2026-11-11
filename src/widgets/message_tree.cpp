@@ -1535,66 +1535,67 @@ void AMessageTree::processUrl (const QString& url)
 
 		external_url.replace("avalon:", "");
 
-		// проверка на то, что URL является ссылкой на сообщение RSDN
-		// TODO: дополнить регэксп на ссылку вида https://rsdn.org/forum/Message.aspx?mid=3900833&only=1
-		// пример встречается по ссылке https://rsdn.org/forum/unix/3901241.1
-		QRegExp rsdn_url("^(https?://){0,1}((www|gzip)\\.){0,1}rsdn\\.(ru|org)/forum/.+/(\\d+)(\\.(1|flat|aspx)){0,1}", Qt::CaseInsensitive);
+        // проверка на то, что URL является ссылкой на сообщение RSDN
+        // TODO: дополнить регэксп на ссылку вида https://rsdn.org/forum/Message.aspx?mid=3900833&only=1
+        // пример встречается по ссылке https://rsdn.org/forum/unix/3901241.1
+        QRegularExpression rsdn_url("^(https?://){0,1}((www|gzip)\\.){0,1}rsdn\\.(ru|org)/forum/.+/(\\d+)(\\.(1|flat|aspx)){0,1}", QRegularExpression::CaseInsensitiveOption);
+        QRegularExpressionMatch match = rsdn_url.match(external_url);
 
-		if (rsdn_url.indexIn(external_url) == -1)
-			QDesktopServices::openUrl(external_url);
-		else
-		{
-			// URL является ссылкой на сообщение RSDN, получение id сообщения
-			QList<int> path;
+        if (!match.hasMatch())
+            QDesktopServices::openUrl(external_url);
+        else
+        {
+            // URL является ссылкой на сообщение RSDN, получение id сообщения
+            QList<int> path;
 
-			bool is_int     = false;
-			int  id_forum   = 0;
-			int  id_message = rsdn_url.cap(5).toInt(&is_int);
+            bool is_int     = false;
+            int  id_forum   = 0;
+            int  id_message = match.captured(5).toInt(&is_int);
 
-			// проверка того, что текущее выделение не есть это же сообщение
-			MessageTreeWidgetItem* item = static_cast<MessageTreeWidgetItem*>(currentItem());
+            // проверка того, что текущее выделение не есть это же сообщение
+            MessageTreeWidgetItem* item = static_cast<MessageTreeWidgetItem*>(currentItem());
 
-			if (item != NULL && item->pag()->ID == id_message)
-			{
-				QDesktopServices::openUrl(external_url);
-				return;
-			}
+            if (item != NULL && item->pag()->ID == id_message)
+            {
+                QDesktopServices::openUrl(external_url);
+                return;
+            }
 
-			// попытка получения пути сообщения
-			QScopedPointer<IAStorage> storage(AStorageFactory::getStorage());
+            // попытка получения пути сообщения
+            QScopedPointer<IAStorage> storage(AStorageFactory::getStorage());
 
-			// "тихая" отработка ошибок, т.к. ошибки не критичны
-			if (storage.isNull() == true)
-			{
-				QDesktopServices::openUrl(external_url);
-				return;
-			}
+            // "тихая" отработка ошибок, т.к. ошибки не критичны
+            if (storage.isNull() == true)
+            {
+                QDesktopServices::openUrl(external_url);
+                return;
+            }
 
-			if (storage->getMessagePath(id_message, id_forum, path) == false)
-			{
-				QDesktopServices::openUrl(external_url);
-				return;
-			}
+            if (storage->getMessagePath(id_message, id_forum, path) == false)
+            {
+                QDesktopServices::openUrl(external_url);
+                return;
+            }
 
-			if (id_forum == 0 || path.count() == 0)
-			{
-				QDesktopServices::openUrl(external_url);
-				return;
-			}
+            if (id_forum == 0 || path.count() == 0)
+            {
+                QDesktopServices::openUrl(external_url);
+                return;
+            }
 
-			if (m_current_forum.ID != id_forum && (m_forum_tree == NULL || m_forum_tree->selectForum(id_forum) == false))
-			{
-				QDesktopServices::openUrl(external_url);
-				return;
-			}
+            if (m_current_forum.ID != id_forum && (m_forum_tree == NULL || m_forum_tree->selectForum(id_forum) == false))
+            {
+                QDesktopServices::openUrl(external_url);
+                return;
+            }
 
-			// переход на сообщение
-			if (selectByPath(&path) == false)
-			{
-				QDesktopServices::openUrl(external_url);
-				return;
-			}
-		}
+            // переход на сообщение
+            if (selectByPath(&path) == false)
+            {
+                QDesktopServices::openUrl(external_url);
+                return;
+            }
+        }
 
 		return;
 	}
@@ -1617,7 +1618,7 @@ void AMessageTree::processUrl (const QString& url)
 	info.IDMessage = item->pag()->ID;
 	info.Rate      = rate;
 	info.Date      = QDateTime::currentDateTime();
-	info.ID        = info.Date.toTime_t(); // это локальный ID
+    info.ID        = info.Date.toSecsSinceEpoch(); // это локальный ID
 
 	// добавление рейтинга
 	if (storage->addRating2Send(info) == false)

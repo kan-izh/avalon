@@ -147,43 +147,44 @@ AParsedBlockList AParser::parseBlocks (const QString& source)
 		{ "[t]",                "[/t]",         pbtTable,     pbstText  },
 	};
 
-	AParsedBlockList result;
+    AParsedBlockList result;
 
-	// проверка на вхождения тэгов cut - тэг "жадный"
-	QRegExp cut_rx("\\[cut=?([^\\]]*)\\](.*)\\[/cut\\]", Qt::CaseInsensitive, QRegExp::RegExp2 /* greedy */);
+    // проверка на вхождения тэгов cut - тэг "жадный"
+    QRegularExpression cut_rx("\\[cut=?([^\\]]*)\\](.*)\\[/cut\\]", QRegularExpression::CaseInsensitiveOption | QRegularExpression::MultilineOption);
 
-	int cut_pos = cut_rx.indexIn(source);
+    QRegularExpressionMatch cut_match = cut_rx.match(source);
 
-	if (cut_pos != -1)
-	{
-		//qDebug() << cut_rx.capturedTexts();
+    if (cut_match.hasMatch())
+    {
+        //qDebug() << cut_match.capturedTexts();
 
-		// TODO: Если кому-то в голову придет вставить большое количество вложенных тэгов cut в сообщение,
-		// то грохнется с переполнением стека (но интересно же кому придет и выдержит ли форматтер RSDN :)
+        // TODO: Если кому-то в голову придет вставить большое количество вложенных тэгов cut в сообщение,
+        // то грохнется с переполнением стека (но интересно же кому придет и выдержит ли форматтер RSDN :)
 
-		int     cut_length  = cut_rx.cap(0).length();
-		QString pre_source  = source.mid(0, cut_pos);
-		QString post_source = source.mid(cut_pos + cut_length, source.length() - cut_pos - cut_length);
+        int     cut_pos     = cut_match.capturedStart(0);
+        int     cut_length  = cut_match.capturedLength(0);
+        QString pre_source  = source.mid(0, cut_pos);
+        QString post_source = source.mid(cut_pos + cut_length, source.length() - cut_pos - cut_length);
 
-		if (pre_source.length() > 0)
-			result += parseBlocks(pre_source);
+        if (pre_source.length() > 0)
+            result += parseBlocks(pre_source);
 
-		AParsedBlock block;
+        AParsedBlock block;
 
-		block.Type      = pbtCut;
-		block.SubType   = pbstBlock;
-		block.Title     = cut_rx.cap(1);
-		block.SubBlocks = parseBlocks(cut_rx.cap(2));
+        block.Type      = pbtCut;
+        block.SubType   = pbstBlock;
+        block.Title     = cut_match.captured(1);
+        block.SubBlocks = parseBlocks(cut_match.captured(2));
 
-		result.append(block);
+        result.append(block);
 
-		if (post_source.length() > 0)
-			result += parseBlocks(post_source);
+        if (post_source.length() > 0)
+            result += parseBlocks(post_source);
 
-		return result;
-	}
+        return result;
+    }
 
-	AParsedBlock current_block;
+    AParsedBlock current_block;
 
 	current_block.Type    = pbtText;
 	current_block.SubType = pbstText;
@@ -305,13 +306,13 @@ AParsedBlockList AParser::parseBlocks (const QString& source)
 				QString close_part = found_tag->ClosePart;
 
 				// проверяем хвост разбираемой строки
-				if (data.indexOf(close_part, Qt::CaseInsensitive) == -1)
+                if (data.indexOf(close_part, Qt::CaseInsensitive) == -1)
 				{
 					// в хвосте строки закрывающий тэг не найден, проверяем остальные строки
 					bool found = false;
 
 					for (int j = i; j < source_quote_list.count(); j++)
-						if (source_quote_list[j].Data.indexOf(close_part, Qt::CaseInsensitive) != -1)
+                        if (source_quote_list[j].Data.indexOf(close_part, Qt::CaseInsensitive) != -1)
 						{
 							found = true;
 							break;

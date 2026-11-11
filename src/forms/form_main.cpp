@@ -670,20 +670,21 @@ void AFormMain::menu_goto_by_id_triggered ()
 		int  id_message = text.toInt(&is_int);
 		int  id_forum   = 0;
 
-		if (is_int == false)
-		{
-			QRegExp reg_id_message("rsdn\\.(ru|org).+(\\d+).+");
+        if (is_int == false)
+        {
+            QRegularExpression reg_id_message("rsdn\\.(ru|org).+(\\d+).+");
+            QRegularExpressionMatch match = reg_id_message.match(text);
 
-			if (reg_id_message.indexIn(text) == -1)
-			{
-				QMessageBox::critical(this, QString::fromUtf8("Ошибка!"), QString::fromUtf8("Текст ") + text + QString::fromUtf8(" не является ни ссылкой ни числом требуемого формата."));
-				return;
-			}
+            if (!match.hasMatch())
+            {
+                QMessageBox::critical(this, QString::fromUtf8("Ошибка!"), QString::fromUtf8("Текст ") + text + QString::fromUtf8(" не является ни ссылкой ни числом требуемого формата."));
+                return;
+            }
 
-			QString str_id_message = reg_id_message.cap(2);
+            QString str_id_message = match.captured(2);
 
-			id_message = str_id_message.toInt(&is_int);
-		}
+            id_message = str_id_message.toInt(&is_int);
+        }
 
 		if (is_int == false || id_message < 1)
 		{
@@ -892,20 +893,21 @@ void AFormMain::menu_service_download_triggered()
 		bool is_int = false;
 		int message_id = text.toInt(&is_int);
 
-		if (is_int == false)
-		{
-			QRegExp reg_message_id("rsdn\\.(ru|org).+(\\d+).+");
+        if (is_int == false)
+        {
+            QRegularExpression reg_message_id("rsdn\\.(ru|org).+(\\d+).+");
+            QRegularExpressionMatch match = reg_message_id.match(text);
 
-			if (reg_message_id.indexIn(text) == -1)
-			{
-				QMessageBox::critical(this, QString::fromUtf8("Ошибка!"), QString::fromUtf8("Текст ") + text + QString::fromUtf8(" не является ни ссылкой ни числом требуемого формата."));
-				return;
-			}
+            if (!match.hasMatch())
+            {
+                QMessageBox::critical(this, QString::fromUtf8("Ошибка!"), QString::fromUtf8("Текст ") + text + QString::fromUtf8(" не является ни ссылкой ни числом требуемого формата."));
+                return;
+            }
 
-			QString str_message_id = reg_message_id.cap(2);
+            QString str_message_id = match.captured(2);
 
-			message_id = str_message_id.toInt(&is_int);
-		}
+            message_id = str_message_id.toInt(&is_int);
+        }
 
 		if (is_int == false || message_id < 1)
 		{

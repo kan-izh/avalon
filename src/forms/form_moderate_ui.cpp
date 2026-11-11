@@ -174,7 +174,7 @@ void FormModerateUI::restore ()
 {
 	QSettings settings;
 
-	QRect screen = QDesktopWidget().screenGeometry(this);
+    QRect screen = window()->screen()->geometry();
 
 	int w = settings.value("form_moderate/width",  width()).toInt();
 	int h = settings.value("form_moderate/height", height()).toInt();

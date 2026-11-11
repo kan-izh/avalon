@@ -130,135 +130,120 @@ void ASpellChecker::suggestList (AspellSpeller* speller, const char* word, int s
 
 void ASpellChecker::highlightBlock (const QString& text)
 {
-	if (m_aspell_speller_en != NULL)
-	{
-		QRegExp word_regexp(QString::fromUtf8("[a-zA-Z]+[a-zA-Z\\-]+[a-zA-Z]+"));
+    if (m_aspell_speller_en != NULL)
+    {
+        QRegularExpression word_regexp(QString::fromUtf8("[a-zA-Z]+[a-zA-Z\\-]+[a-zA-Z]+"));
+        QRegularExpressionMatchIterator it = word_regexp.globalMatch(text);
 
-		int pos = 0;
+        while (it.hasNext())
+        {
+            QRegularExpressionMatch match = it.next();
+            int pos = match.capturedStart(0);
+            int len = match.capturedLength(0);
+            QString word = match.captured(0);
 
-		while ((pos = word_regexp.indexIn(text, pos)) != -1)
-		{
-			int len = word_regexp.matchedLength();
+            if (m_stop_words.contains(word) == false && isNativeCase(word) == true)
+            {
+                QByteArray data = word.toUtf8();
 
-			QString word = text.mid(pos, len);
+                int correct = aspell_speller_check(m_aspell_speller_en, data.data(), data.length());
 
-			if (m_stop_words.contains(word) == false && isNativeCase(word) == true)
-			{
-				QByteArray data = word.toUtf8();
+                if (correct == 1)
+                    markWord(true, pos, len);
+                else if (correct == 0)
+                    markWord(false, pos, len);
+            }
+        }
+    }
 
-				int correct = aspell_speller_check(m_aspell_speller_en, data.data(), data.length());
+    if (m_aspell_speller_ru != NULL)
+    {
+        QRegularExpression word_regexp(QString::fromUtf8("[а-яА-ЯёЁ]+[а-яА-ЯёЁ\\-]+[а-яА-ЯёЁ]+"));
+        QRegularExpressionMatchIterator it = word_regexp.globalMatch(text);
 
-				if (correct == 1)
-					markWord(true, pos, len);
-				else if (correct == 0)
-					markWord(false, pos, len);
-			}
+        while (it.hasNext())
+        {
+            QRegularExpressionMatch match = it.next();
+            int pos = match.capturedStart(0);
+            int len = match.capturedLength(0);
+            QString word = match.captured(0);
 
-			pos += len;
+            if (m_stop_words.contains(word) == false)
+            {
+                word = word.replace(QString::fromUtf8("ё"), QString::fromUtf8("е"));
+                word = word.replace(QString::fromUtf8("Ё"), QString::fromUtf8("Е"));
 
-		}   // while ((pos = word_regexp.indexIn(text, pos)) != -1)
+                QByteArray data = word.toUtf8();
 
-	}   // if (m_aspell_speller_en != NULL)
+                int correct = aspell_speller_check(m_aspell_speller_ru, data.data(), data.length());
 
-	if (m_aspell_speller_ru != NULL)
-	{
-		QRegExp word_regexp(QString::fromUtf8("[а-яА-ЯёЁ]+[а-яА-ЯёЁ\\-]+[а-яА-ЯёЁ]+"));
-
-		int pos = 0;
-
-		while ((pos = word_regexp.indexIn(text, pos)) != -1)
-		{
-			int len = word_regexp.matchedLength();
-
-			QString word = text.mid(pos, len);
-
-			if (m_stop_words.contains(word) == false)
-			{
-				word = word.replace(QString::fromUtf8("ё"), QString::fromUtf8("е"));
-				word = word.replace(QString::fromUtf8("Ё"), QString::fromUtf8("Е"));
-
-				QByteArray data = word.toUtf8();
-
-				int correct = aspell_speller_check(m_aspell_speller_ru, data.data(), data.length());
-
-				if (correct == 1)
-					markWord(true, pos, len);
-				else if (correct == 0)
-					markWord(false, pos, len);
-			}
-
-			pos += len;
-
-		}   // while ((pos = word_regexp.indexIn(text, pos)) != -1)
-
-	}   // if (m_aspell_speller_ru != NULL)
+                if (correct == 1)
+                    markWord(true, pos, len);
+                else if (correct == 0)
+                    markWord(false, pos, len);
+            }
+        }
+    }
 }
 //----------------------------------------------------------------------------------------------
 
 int ASpellChecker::spellWord (const QString& text, QStringList* suggest_list)
 {
-	if (m_aspell_speller_en != NULL)
-	{
-		QRegExp word_regexp(QString::fromUtf8("^[a-zA-Z]+[a-zA-Z\\-]+[a-zA-Z]+$"));
+    if (m_aspell_speller_en != NULL)
+    {
+        QRegularExpression word_regexp(QString::fromUtf8("^[a-zA-Z]+[a-zA-Z\\-]+[a-zA-Z]+$"));
+        QRegularExpressionMatch match = word_regexp.match(text);
 
-		int pos = word_regexp.indexIn(text);
+        if (match.hasMatch())
+        {
+            if (m_stop_words.contains(text) == true || isNativeCase(text) == false)
+                return 0;
 
-		if (pos == 0)
-		{
-			if (m_stop_words.contains(text) == true || isNativeCase(text) == false)
-				return 0;
+            QByteArray data = text.toUtf8();
 
-			QByteArray data = text.toUtf8();
+            int correct = aspell_speller_check(m_aspell_speller_en, data.data(), data.length());
 
-			int correct = aspell_speller_check(m_aspell_speller_en, data.data(), data.length());
+            if (correct == -1)
+                return -1;
+            else if (correct == 1)
+                return 0;
 
-			if (correct == -1)
-				return -1;
-			else if (correct == 1)
-				return 0;
+            suggestList(m_aspell_speller_en, data.data(), data.length(), suggest_list);
 
-			suggestList(m_aspell_speller_en, data.data(), data.length(), suggest_list);
+            return 1;
+        }
+    }
 
-			return 1;
+    if (m_aspell_speller_ru != NULL)
+    {
+        QRegularExpression word_regexp(QString::fromUtf8("^[а-яА-ЯёЁ]+[а-яА-ЯёЁ\\-]+[а-яА-ЯёЁ]+$"));
+        QString word = text;
+        QRegularExpressionMatch match = word_regexp.match(word);
 
-		}   // if (pos == 0)
+        if (match.hasMatch())
+        {
+            if (m_stop_words.contains(word) == true)
+                return 0;
 
-	}   // if (m_aspell_speller_en != NULL)
+            word = word.replace(QString::fromUtf8("ё"), QString::fromUtf8("е"));
+            word = word.replace(QString::fromUtf8("Ё"), QString::fromUtf8("Е"));
 
-	if (m_aspell_speller_ru != NULL)
-	{
-		QRegExp word_regexp(QString::fromUtf8("^[а-яА-ЯёЁ]+[а-яА-ЯёЁ\\-]+[а-яА-ЯёЁ]+$"));
+            QByteArray data = word.toUtf8();
 
-		QString word = text;
+            int correct = aspell_speller_check(m_aspell_speller_ru, data.data(), data.length());
 
-		int pos = word_regexp.indexIn(word);
+            if (correct == -1)
+                return -1;
+            else if (correct == 1)
+                return 0;
 
-		if (pos == 0)
-		{
-			if (m_stop_words.contains(word) == true)
-				return 0;
+            suggestList(m_aspell_speller_ru, data.data(), data.length(), suggest_list);
 
-			word = word.replace(QString::fromUtf8("ё"), QString::fromUtf8("е"));
-			word = word.replace(QString::fromUtf8("Ё"), QString::fromUtf8("Е"));
+            return 1;
+        }
+    }
 
-			QByteArray data = word.toUtf8();
-
-			int correct = aspell_speller_check(m_aspell_speller_ru, data.data(), data.length());
-
-			if (correct == -1)
-				return -1;
-			else if (correct == 1)
-				return 0;
-
-			suggestList(m_aspell_speller_ru, data.data(), data.length(), suggest_list);
-
-			return 1;
-
-		}   // if (pos == 0)
-
-	}   // if (m_aspell_speller_ru != NULL)
-
-	return 0;
+    return 0;
 }
 //----------------------------------------------------------------------------------------------
 

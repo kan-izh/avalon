@@ -11,7 +11,7 @@ branches:
 
 before_install:
   - sudo apt-get -y install zlib1g-dev libaspell-dev
-  - sudo apt-get -y install qt5-default libqt5webkit5-dev
+  - sudo apt-get -y install qt6-base-dev qt6-webengine-dev
 
 script:
   - ./build.linux.sh

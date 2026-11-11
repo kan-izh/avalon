@@ -2,7 +2,7 @@
 
 set -e
 
-export QT_SELECT=5
+export QT_SELECT=6
 
 # имя проекта
 PROJECT_NAME="avalon"
@@ -14,17 +14,17 @@ fi
 
 # создание pro-файла
 BUILD_DIR=$(pwd)
-qmake -project -recursive -Wall -nopwd -o ${PROJECT_NAME}.pro \
-    "CONFIG      += debug_and_release"                        \
-    "QT          += network sql core widgets webkitwidgets"   \
-    "INCLUDEPATH += src"                                      \
-    "LIBS        += -laspell -lz"                             \
-    "macx { QMAKE_CXX = clang }"                              \
-    "macx { ICON = icons/avalon.icns }"                       \
+qmake6 -project -recursive -Wall -nopwd -o ${PROJECT_NAME}.pro \
+    "CONFIG      += debug_and_release" \
+    "QT          += network sql core widgets webenginewidgets" \
+    "INCLUDEPATH += src" \
+    "LIBS        += -laspell -lz" \
+    "macx { QMAKE_CXX = clang }" \
+    "macx { ICON = icons/avalon.icns }" \
     "${BUILD_DIR}/src"
 
 # создание make-файлов
-qmake ${PROJECT_NAME}.pro
+qmake6 ${PROJECT_NAME}.pro
 
 # создание бинарника
 make $1

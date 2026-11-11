@@ -17,7 +17,7 @@
 #include <QTimer>
 #include <QLabel>
 #include <QDialog>
-#include <QRegExp>
+#include <QRegularExpression>
 #include <QSysInfo>
 #include <QtGlobal>
 #include <QWebEngineView>
@@ -40,7 +40,6 @@
 #include <QScrollBar>
 #include <QStatusBar>
 #include <QValidator>
-#include <QTextCodec>
 #include <QTcpSocket>
 #include <QSslSocket>
 #include <QSslCipher>
@@ -66,7 +65,6 @@
 #include <QIntValidator>
 #include <QNetworkProxy>
 #include <QNetworkReply>
-#include <QDesktopWidget>
 #include <QTemporaryFile>
 #include <QScopedPointer>
 #include <QNetworkRequest>
@@ -74,6 +72,7 @@
 #include <QDesktopServices>
 #include <QSslConfiguration>
 #include <QNetworkAccessManager>
+#include <QScreen>
 
 // на момент ответвления 3.x минимально поддерживаемая версия Qt 5.9 LTS (5.9.9)
 #if QT_VERSION < 0x050909

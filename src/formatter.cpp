@@ -499,47 +499,53 @@ QString AFormatter::formatSimpleText (const QString& text)
 	QString result = text;
 
 	for (size_t i = 0; i < sizeof(replace_map) / sizeof(ASimpleTag); i++)
-		result.replace(QString::fromUtf8(replace_map[i].Source), QString::fromUtf8(replace_map[i].Replace), Qt::CaseInsensitive);
+        result.replace(QString::fromUtf8(replace_map[i].Source), QString::fromUtf8(replace_map[i].Replace), Qt::CaseInsensitive);
 
 	//
 	// [img] ... [/img]
 	//
 
-	QRegExp img("\\[img\\](.+)\\[/img\\]", Qt::CaseInsensitive, QRegExp::RegExp);
+    QRegularExpression img("\\[img(=\\w+)?\\](.+?)\\[/img\\]", QRegularExpression::CaseInsensitiveOption);
+    QRegularExpressionMatchIterator it = img.globalMatch(result);
 
-	img.setMinimal(true);
+    if (it.hasNext()) {
+        QString optimizedResult;
+        optimizedResult.reserve(result.size());
 
-	int index = 0;
+        int lastIndex = 0;
+        while (it.hasNext()) {
+            QRegularExpressionMatch match = it.next();
 
-	while ((index = img.indexIn(result, index)) != -1)
-	{
-		QString html;
-		QString lstr = img.cap(1).trimmed();
-		int     lval = AParser::isURL(lstr);
+            // 1. Append the chunk of text between the last match and this match
+            optimizedResult.append(result.mid(lastIndex, match.capturedStart() - lastIndex));
 
-		if (lval == 1)
-			html = "<center><img src='" + lstr + "'></center>";
-		else if (lval == 2) // опасная ссылка
-			html = "<span class='alert'>" + lstr + "</span>";
-		else // невалидная ссылка
-			html = lstr;
+            // 2. Process the tag
+            QString lstr = match.captured(2).trimmed();
+            int lval = AParser::isURL(lstr);
+            QString html;
 
-		result.replace(img.cap(0), html);
+            if (lval == 1)
+                optimizedResult.append("<center><img src='").append(lstr).append("'></center>");
+            else if (lval == 2) // опасная ссылка
+                optimizedResult.append("<span class='alert'>").append(lstr).append("</span>");
+            else // невалидная ссылка
+                optimizedResult.append(lstr);
 
-		index += std::min(img.matchedLength(), html.length());
-	}
+            lastIndex = match.capturedEnd();
+        }
+
+        // 4. Append any remaining text after the final match
+        optimizedResult.append(result.mid(lastIndex));
+        result = optimizedResult;
+    }
 
 	//
 	// списки
 	//
 
-	QRegExp list1("\\[list=1\\](.+)\\[/list\\]", Qt::CaseInsensitive, QRegExp::RegExp);
-	QRegExp list2("\\[list=a\\](.+)\\[/list\\]", Qt::CaseInsensitive, QRegExp::RegExp);
-	QRegExp list3("\\[list\\](.+)\\[/list\\]",   Qt::CaseInsensitive, QRegExp::RegExp);
-
-	list1.setMinimal(true);
-	list2.setMinimal(true);
-	list3.setMinimal(true);
+    QRegularExpression list1("\\[list=1\\](.+?)\\[/list\\]", QRegularExpression::CaseInsensitiveOption);
+    QRegularExpression list2("\\[list=a\\](.+?)\\[/list\\]", QRegularExpression::CaseInsensitiveOption);
+    QRegularExpression list3("\\[list\\](.+?)\\[/list\\]",   QRegularExpression::CaseInsensitiveOption);
 
 	result.replace(list1, "<ol type='1' start='1'>\\1</ol>");
 	result.replace(list2, "<ol type='a'>\\1</ol>");
@@ -553,179 +559,161 @@ QString AFormatter::formatSimpleText (const QString& text)
 	return result;
 }
 //----------------------------------------------------------------------------------------------
-
-QString AFormatter::formatHyperlinks (const QString& text)
+QString AFormatter::formatHyperlinks(const QString& text)
 {
-	QString result = text;
+    // Helper lambda to perform an O(N) single-pass regex replacement
+    auto processRegexPass = [](const QString &input, const QRegularExpression &regex, auto replacer) -> QString {
+        QRegularExpressionMatchIterator it = regex.globalMatch(input);
+        if (!it.hasNext()) {
+            return input;
+        }
 
-	QRegExp url1("\\[url\\](.+)\\[/url\\]",        Qt::CaseInsensitive, QRegExp::RegExp);
-	QRegExp url2("\\[url=(\\S+)\\](.+)\\[/url\\]", Qt::CaseInsensitive, QRegExp::RegExp);
+        QString output;
+        output.reserve(input.size() + 256);
 
-	url1.setMinimal(true);
-	url2.setMinimal(true);
+        int lastIndex = 0;
+        while (it.hasNext()) {
+            QRegularExpressionMatch match = it.next();
 
-	int index = 0;
+            // 1. Append text between the last match and the current match
+            output.append(input.mid(lastIndex, match.capturedStart() - lastIndex));
 
-	while ((index = url1.indexIn(result, index)) != -1)
-	{
-		QString html;
-		QString lstr = url1.cap(1);
-		int     lval = AParser::isURL(lstr);
+            // 2. Generate replacement via callback
+            output.append(replacer(match));
 
-		if (lval == 1)
-			html = QString::fromUtf8("<a href='") + lstr + "'>" + lstr + "</a>";
-		else if (lval == 2) // опасная ссылка
-			html = "<span class='alert'>" + lstr + "</span>";
-		else // невалидная ссылка
-			html = lstr;
+            lastIndex = match.capturedEnd();
+        }
 
-		QString match = url1.cap(0);
-		result.replace(match, html);
+        // 3. Append remaining text after the final match
+        output.append(input.mid(lastIndex));
+        return output;
+    };
 
-		index += url1.matchedLength() + match.length() - html.length();
-	}
+    QString result = text;
 
-	index = 0;
+    // 1. [url]...[/url]
+    QRegularExpression url1("\\[url\\](.+?)\\[/url\\]", QRegularExpression::CaseInsensitiveOption);
+    result = processRegexPass(result, url1, [](const QRegularExpressionMatch &match) {
+        QString lstr = match.captured(1);
+        int lval = AParser::isURL(lstr);
 
-	while ((index = url2.indexIn(result, index)) != -1)
-	{
-		QString html;
+        if (lval == 1)
+            return QString("<a href='%1'>%1</a>").arg(lstr);
+        else if (lval == 2) // опасная ссылка
+            return QString("<span class='alert'>%1</span>").arg(lstr);
+        else // невалидная ссылка
+            return lstr;
+    });
 
-		QString lstr = url2.cap(1);
-		QString rstr = url2.cap(2);
+    // 2. [url=...]...[/url]
+    QRegularExpression url2("\\[url=(\\S+?)\\](.+?)\\[/url\\]", QRegularExpression::CaseInsensitiveOption);
+    result = processRegexPass(result, url2, [](const QRegularExpressionMatch &match) {
+        QString lstr = match.captured(1);
+        QString rstr = match.captured(2);
 
-		int lval = AParser::isURL(lstr);
-		int rval = AParser::isURL(rstr);
+        int lval = AParser::isURL(lstr);
+        int rval = AParser::isURL(rstr);
 
-		if (lval == 1)
-			html = "<a href='" + lstr + "'>" + rstr + "</a>";
-		else if (rval == 1)
-			html = "<a href='" + rstr + "'>" + lstr + "</a>";
-		else if (lval == 2)
-			html = "<span class='alert'>" + rstr + "</span>";
-		else if (rval == 2)
-			html = "<span class='alert'>" + lstr + "</span>";
-		else // невалидная ссылка
-			html = rstr + " (" + lstr + ")";
+        if (lval == 1)
+            return QString("<a href='%1'>%2</a>").arg(lstr, rstr);
+        else if (rval == 1)
+            return QString("<a href='%2'>%1</a>").arg(lstr, rstr);
+        else if (lval == 2)
+            return QString("<span class='alert'>%2</span>").arg(lstr, rstr);
+        else if (rval == 2)
+            return QString("<span class='alert'>%1</span>").arg(lstr, rstr);
+        else // невалидная ссылка
+            return QString("%1 (%2)").arg(rstr, lstr);
+    });
 
-		QString match = url2.cap(0);
-		result.replace(match, html);
+    // 3. Raw URLs without tags
+    QRegularExpression url3("[^'>]((http://|https://|ftp://|[^/]www\\.)[^<\\s]+)", QRegularExpression::CaseInsensitiveOption);
+    result = processRegexPass(result, url3, [](const QRegularExpressionMatch &match) {
+        // match.captured(0) includes the leading non-'>' character,
+        // match.captured(1) is the actual URL group.
+        QString fullMatch = match.captured(0);
+        QString lstr = match.captured(1);
+        int lval = AParser::isURL(lstr);
 
-		index += url2.matchedLength() + match.length() - html.length();
-	}
+        char prefix = fullMatch.at(0).toLatin1();
 
-	// ссылки без тэгов
-	QRegExp url3("[^'>]((http://|https://|ftp://|[^/]www\\.)[^<\\s]+)", Qt::CaseInsensitive, QRegExp::RegExp);
+        if (lval == 1) {
+            QString decoded = QUrl::fromPercentEncoding(lstr.toUtf8());
+            QString html = QString("<a href='%1'>%2</a>").arg(lstr, decoded);
+            // Preserve the leading character (e.g., space or quote boundary)
+            return QString(prefix) + html; // or properly align offsets
+        }
+        return fullMatch;
+    });
 
-	index = 0;
+    // 4. [email]...[/email]
+    QRegularExpression email("\\[email\\](\\S+?)\\[/email\\]", QRegularExpression::CaseInsensitiveOption);
+    result = processRegexPass(result, email, [](const QRegularExpressionMatch &match) {
+        QString lstr = match.captured(1);
+        int lval = AParser::isURL(lstr);
 
-	while ((index = url3.indexIn(result, index)) != -1)
-	{
-		QString html;
-		QString lstr = url3.cap(1);
-		int     lval = AParser::isURL(lstr);
-		index += url3.matchedLength();
-		index += url3.matchedLength();
-		if (lval == 1)
-		{
-			html = QString::fromUtf8("<a href='") + lstr + "'>" + QUrl::fromPercentEncoding(lstr.toUtf8()) + "</a>";
-			result.replace(lstr, html);
-			index += html.length() - lstr.length();
-		}
-	}
+        if (lval == 1)
+            return QString("<a href='mailto:%1'>%1</a>").arg(lstr);
+        return lstr;
+    });
 
-	// email url
-	QRegExp email("\\[email\\](\\S+)\\[/email\\]", Qt::CaseInsensitive, QRegExp::RegExp);
+    // 5. [msdn]...[/msdn]
+    // Native Qt 6 global replace works cleanly here since substitution patterns (\1) are fully supported.
+    QRegularExpression msdn("\\[msdn\\](\\S+?)\\[/msdn\\]", QRegularExpression::CaseInsensitiveOption);
+    result.replace(msdn, "<a href='http://search.msdn.microsoft.com/Default.aspx?brand=Msdn&query=\\1'>\\1</a>");
 
-	email.setMinimal(true);
-
-	index = 0;
-
-	while ((index = email.indexIn(result, index)) != -1)
-	{
-		QString html;
-		QString lstr = email.cap(1);
-		int     lval = AParser::isURL(lstr);
-
-		if (lval == 1)
-			html = QString::fromUtf8("<a href='mailto:") + lstr + "'>" + lstr + "</a>";
-		else if (lval == 2)
-			html = lstr;
-		else // невалидная ссылка
-			html = lstr;
-
-		result.replace(email.cap(0), html);
-
-		index += std::min(email.matchedLength(), html.length());
-	}
-
-	// msdn url
-	QRegExp msdn("\\[msdn\\](\\S+)\\[/msdn\\]", Qt::CaseInsensitive, QRegExp::RegExp);
-	msdn.setMinimal(true);
-	result.replace(msdn, "<a href='http://search.msdn.microsoft.com/Default.aspx?brand=Msdn&query=\\1'>\\1</a>");
-
-	return result;
+    return result;
 }
+
 //----------------------------------------------------------------------------------------------
 
 QString AFormatter::normalizeBody (const QString& body, const QString& nick)
 {
-	QString data = body;
+    QString data = body;
 
-	// отбрасываем "[tagline]" и "[moderator]"
-	QRegExp tagline("\\[tagline\\](.+)\\[/tagline\\]",       Qt::CaseInsensitive);
-	QRegExp moderator("\\[moderator\\](.+)\\[/moderator\\]", Qt::CaseInsensitive);
+    // отбрасываем "[tagline]" и "[moderator]"
+    QRegularExpression tagline("\\[tagline\\](.+?)\\[/tagline\\]", QRegularExpression::CaseInsensitiveOption);
+    QRegularExpression moderator("\\[moderator\\](.+?)\\[/moderator\\]", QRegularExpression::CaseInsensitiveOption);
 
-	tagline.setMinimal(true);
-	moderator.setMinimal(true);
+    data.replace(tagline, "");
+    data.replace(moderator, "");
 
-	data.replace(tagline,   "");
-	data.replace(moderator, "");
+    // удаляем img с данными вместо ссылки (например, см. https://rsdn.org/forum/flame.comp/4077971.1)
+    QRegularExpression img1("\\[img\\]data:(\\S+?)\\[/img\\]", QRegularExpression::CaseInsensitiveOption);
+    data.replace(img1, "");
 
-	// удаляем img с даными вместо ссылки (например, см. https://rsdn.org/forum/flame.comp/4077971.1)
-	QRegExp img1("\\[img\\]data:(\\S+)\\[/img\\]", Qt::CaseInsensitive);
-	img1.setMinimal(true);
-	data.replace(img1, "");
+    // заменяем [img]...[/img] на ссылку
+    QRegularExpression img2("\\[img\\](\\S+?)\\[/img\\]", QRegularExpression::CaseInsensitiveOption);
+    data.replace(img2, "[url=\\1]\\1[/url]");
 
-	// заменяем [img]...[/img] на ссылку
-	QRegExp img2("\\[img\\](\\S+)\\[/img\\]", Qt::CaseInsensitive);
-	img2.setMinimal(true);
-	data.replace(img2, QString::fromUtf8("[url=\\1]\\1[/url]"));
+    // укорачивание длинных ссылок (например, см. https://rsdn.org/forum/web/4086359.1)
+    QRegularExpression url1("\\[url=data:(\\S+?)\\](.+?)\\[/url\\]", QRegularExpression::CaseInsensitiveOption);
+    data.replace(url1, "[url=bad%20link]\\2[/url]");
 
-	// укорачивание длинных ссылок (например, см. https://rsdn.org/forum/web/4086359.1)
-	QRegExp url1("\\[url=data:(\\S+)\\](.+)\\[/url\\]", Qt::CaseInsensitive);
-	url1.setMinimal(true);
-	data.replace(url1, "[url=bad%20link]\\2[/url]");
+    // удаление тэга цитирования
+    QRegularExpression q1("(^|[^\\[])\\[q\\]", QRegularExpression::CaseInsensitiveOption | QRegularExpression::MultilineOption);
+    data.replace(q1, "\\1");
 
-	// удаление тэга цитирования
-	QRegExp q1("(^|[^\\[])\\[q\\]", Qt::CaseInsensitive);
-	q1.setMinimal(true);
-	data.replace(q1, "\\1");
+    QRegularExpression q2("(^|[^\\[])\\[/q\\]", QRegularExpression::CaseInsensitiveOption | QRegularExpression::MultilineOption);
+    data.replace(q2, "\\1");
 
-	QRegExp q2("(^|[^\\[])\\[/q\\]", Qt::CaseInsensitive);
-	q2.setMinimal(true);
-	data.replace(q2, "\\1");
+    // удаление таблиц из цитирования
+    QRegularExpression table("(^|[^\\[])\\[t\\](.+?)\\[/t\\]", QRegularExpression::CaseInsensitiveOption | QRegularExpression::MultilineOption);
+    data.replace(table, "\\1");
 
-	// удаление таблиц из цитирования
-	QRegExp table("(^|[^\\[])\\[t\\](.+)\\[/t\\]", Qt::CaseInsensitive);
-	table.setMinimal(true);
-	data.replace(table, "\\1");
+    // удаление тэгов [h1]..[h6] из цитирования
+    for (int i = 1; i < 7; i++)
+    {
+        QRegularExpression h1("(^|[^\\[])\\[h" + QString::number(i) + "\\]", QRegularExpression::CaseInsensitiveOption | QRegularExpression::MultilineOption);
+        data.replace(h1, "\\1");
 
-	// удаление тэгов [h1]..[h6] из цитирования
-	for (int i = 1; i < 7; i++)
-	{
-		QRegExp h1("(^|[^\\[])\\[h" + QString::number(i) + "\\]", Qt::CaseInsensitive);
-		h1.setMinimal(true);
-		data.replace(h1, "\\1");
+        QRegularExpression h2("(^|[^\\[])\\[/h" + QString::number(i) + "\\]", QRegularExpression::CaseInsensitiveOption | QRegularExpression::MultilineOption);
+        data.replace(h2, "\\1");
+    }
 
-		QRegExp h2("(^|[^\\[])\\[/h" + QString::number(i) + "\\]", Qt::CaseInsensitive);
-		h2.setMinimal(true);
-		data.replace(h2, "\\1");
-	}
+    data = data.trimmed();
 
-	data = data.trimmed();
-
-	// разбиение
+    // разбиение
 	QStringList source = data.split("\n");
 
 	QString nick_3 = AFormatter::nick3(nick);
@@ -739,7 +727,7 @@ QString AFormatter::normalizeBody (const QString& body, const QString& nick)
 	int index = 0;
 
 	// регексп для приветствий в квотинге
-	QRegExp hello(QString::fromUtf8(">\\s{0,}Здравствуйте,\\s.+,\\sВы писали:"));
+    QRegularExpression hello(QString::fromUtf8(">\\s{0,}Здравствуйте,\\s.+,\\sВы писали:"));
 
 	while (index < source.size() - 1)
 	{

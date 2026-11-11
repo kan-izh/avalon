@@ -1,4 +1,5 @@
 #include "form_main_ui.h"
+#include <QActionGroup>
 //----------------------------------------------------------------------------------------------
 
 AFormMainUI::AFormMainUI () : QMainWindow ()
