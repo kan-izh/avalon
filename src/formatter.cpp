@@ -310,8 +310,12 @@ QString AFormatter::formatParsedBlock (const AParsedBlock& block)
 
 	else if (block.Type == pbtCut)
 	{
+        result += "<details class='cut-block'><summary>";
+        result += block.Title.isEmpty() ? "cut" : block.Title;
+        result += "</summary><div class='cut-content'>";
 		for (int i = 0; i < block.SubBlocks.count(); i++)
 			result += formatParsedBlock(block.SubBlocks.at(i));
+        result += "</div></details>";
 	}
 
 	else

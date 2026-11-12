@@ -220,3 +220,35 @@ body {
 	height     : 20px;
 	background : #E6F2E6;
 }
+details.cut-block {
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    margin: 8px 0;
+    overflow: hidden;
+}
+
+details.cut-block summary {
+    list-style: none;
+    cursor: pointer;
+    font-weight: 600;
+    padding: 8px 12px;
+    user-select: none;
+    background-color: #eaeef2;
+    outline: none;
+}
+
+details.cut-block summary::-webkit-details-marker {
+    display: none !important;
+}
+
+details.cut-block summary::before {
+    content: "⊞ ";
+}
+
+details.cut-block[open] summary::before {
+    content: "⊟ ";
+}
+
+.cut-content {
+    padding: 8px 12px;
+}

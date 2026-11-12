@@ -150,7 +150,7 @@ AParsedBlockList AParser::parseBlocks (const QString& source)
     AParsedBlockList result;
 
     // проверка на вхождения тэгов cut - тэг "жадный"
-    QRegularExpression cut_rx("\\[cut=?([^\\]]*)\\](.*)\\[/cut\\]", QRegularExpression::CaseInsensitiveOption | QRegularExpression::MultilineOption);
+    QRegularExpression cut_rx("\\[cut=?([^\\]]*)\\](.*)\\[/cut\\]", QRegularExpression::CaseInsensitiveOption | QRegularExpression::MultilineOption | QRegularExpression::DotMatchesEverythingOption);
 
     QRegularExpressionMatch cut_match = cut_rx.match(source);
 
