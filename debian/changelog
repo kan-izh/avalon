@@ -1,3 +1,9 @@
+avalon3 (3.1.0) unstable; urgency=low
+
+  * QT 6 и другие модернизации
+
+ -- Anatoly Kupriyanov <kan.izh@gmail.com>  Fri, 13 Nov 2026 19:34:10 +0000
+
 avalon3 (3.0.2) unstable; urgency=low
 
   * Исправление time-zone для DST (летнее-зимнее время).

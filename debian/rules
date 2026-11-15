@@ -12,9 +12,9 @@ override_dh_auto_clean:
 	rm -f avalon
 
 override_dh_auto_configure:
-	qmake -project -recursive -Wall -nopwd -o avalon.pro                \
+	qmake6 -project -recursive -Wall -nopwd -o avalon.pro               \
 		"CONFIG         += release"                                 \
-		"QT             += network sql core widgets webkitwidgets"  \
+		"QT             += network sql core widgets webenginewidgets"  \
 		"INCLUDEPATH    += $(CURDIR)/src"                           \
 		"LIBS           += -laspell -lz"                            \
 		"DEFINES        += AVALON_PACKAGE"                          \
@@ -23,7 +23,7 @@ override_dh_auto_configure:
 		"QMAKE_CXXFLAGS *= $(shell dpkg-buildflags --get CXXFLAGS)" \
 		"QMAKE_LFLAGS   *= $(shell dpkg-buildflags --get LDFLAGS)"  \
 		$(CURDIR)/src
-	qmake avalon.pro
+	qmake6 avalon.pro
 
 override_dh_auto_test:
 	/bin/true

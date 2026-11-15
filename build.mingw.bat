@@ -27,7 +27,7 @@ SET ZLIB_INC=C:\projects\zlib128\include
 REM *******************************
 REM * создание проекта и makefile *
 REM *******************************
-%QT_QMAKE% -project -recursive -Wall -nopwd -o %PROJECT_NAME%.pro "CONFIG += release" "QT += core network sql widgets webkitwidgets" "INCLUDEPATH += %ASPELL_INC% %ZLIB_INC% src" "LIBS += %ASPELL_LIB% %ZLIB_LIB%" "RC_FILE += src/resource.rc" %cd%/src/*
+%QT_QMAKE% -project -recursive -Wall -nopwd -o %PROJECT_NAME%.pro "CONFIG += release" "QT += core network sql widgets webenginewidgets" "INCLUDEPATH += %ASPELL_INC% %ZLIB_INC% src" "LIBS += %ASPELL_LIB% %ZLIB_LIB%" "RC_FILE += src/resource.rc" %cd%/src/*
 %QT_QMAKE% %PROJECT_NAME%.pro
 
 REM ******************************************

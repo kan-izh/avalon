@@ -31,7 +31,7 @@ int main (int argc, char* argv[])
 
 	// переводчик стандартных сообщений и диалогов
 	QString tr_file = "qt_" + QLocale::system().name();
-	QString tr_path = QLibraryInfo::location(QLibraryInfo::TranslationsPath);
+	QString tr_path = QLibraryInfo::path(QLibraryInfo::TranslationsPath);
 
 	if (tr_file == "qt_ru_RU" && QFileInfo (tr_path + "/" + tr_file + ".qm").exists() == false)
 	{

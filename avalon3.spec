@@ -1,5 +1,5 @@
 Name:           avalon3
-Version:        3.0.2
+Version:        3.1.0
 Release:        1
 Summary:        RSDN offline client
 Group:          Applications/Internet
@@ -27,9 +27,9 @@ Offile client for Russian Software Developer Network
 %build
 export builddir=$(pwd)
 
-qmake-qt5 -project -recursive -Wall -nopwd -o avalon.pro       \
+qmake6 -project -recursive -Wall -nopwd -o avalon.pro       \
     "CONFIG         += release"                                \
-    "QT             += network sql core widgets webkitwidgets" \
+    "QT             += network sql core widgets webenginewidgets" \
     "INCLUDEPATH    += src"                                    \
     "DEFINES        += AVALON_PACKAGE"                         \
     "LIBS           += -laspell -lz"                           \
@@ -38,7 +38,7 @@ qmake-qt5 -project -recursive -Wall -nopwd -o avalon.pro       \
     "QMAKE_CXXFLAGS *= ${RPM_OPT_FLAGS}"                       \
     "QMAKE_LFLAGS   *= ${RPM_LD_FLAGS}"                        \
     "${builddir}/src"
-qmake-qt5 avalon.pro
+qmake6 avalon.pro
 make %{?_smp_mflags}
 
 
